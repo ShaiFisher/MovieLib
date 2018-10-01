@@ -30,7 +30,8 @@ var movieLibApp = angular.module('movieLibApp', []);
 movieLibApp.controller('movieLibCtrl', function($scope) {
 
 	$scope.data = {
-		filterText: ''
+		filterText: '',
+		moviesJson: 'init'
 	};
 	
 	$scope.scrumbleList = function(list) {
@@ -92,6 +93,22 @@ movieLibApp.controller('movieLibCtrl', function($scope) {
 		}
 		$scope.importText = newText;
 	};
+	
+	$('#newFielsInput').bind("change", function ($event) {
+		//console.log($event, $event.target.files);
+		var newMovies = [];
+		angular.forEach($event.target.files, function(file) {
+			var subdir = ($scope.subdir ? $scope.subdir + '\\' : '');
+			var title = file.name.replace($scope.subdir + ' - ', '').replace($scope.subdir, '');
+			var newMovie = {
+				name: file.name.substring(0, file.name.length-4),
+				video: subdir + file.name
+			};
+			newMovies.push(newMovie);
+		});
+		$scope.importText = JSON.stringify(newMovies);
+		$scope.$apply();
+	});
 });
 
 
@@ -195,7 +212,7 @@ Body {
 	</h1>
 </div>
 
-<div class="thumbnailsContainer">
+<div class="thumbnailsContainer" ng-hide="false">
 	<div class="row">
 		<div class="thumbnail-cell" 
 				ng-repeat="movie in movies | filter : data.filterText" 
@@ -212,8 +229,10 @@ Body {
 </div>
 
 <div ng-hide="true">
+	
+	<input type="text" ng-model="subdir"/>
+	<input type="file" id="newFielsInput" multiple="true"/><br/>
 	<textarea ng-model="importText" rows="20" cols="90"></textarea>
-	<button ng-click="import()">import</button>
 </div>
 
 

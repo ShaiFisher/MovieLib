@@ -1,5 +1,6 @@
 #include <Constants.au3>
 #include <File.au3>
+#include <Misc.au3>
 
 ;
 ; AutoIt Version: 3.0
@@ -62,6 +63,14 @@ EndFunc
 
 ; init - open html file
 Run('openFile.bat "movieLib.html"')
+
+
+; Enforce singleton
+If _Singleton("test", 1) = 0 Then
+    Exit
+EndIf
+
+
 $prevClipData = 'bla'
 
 While 1=1
