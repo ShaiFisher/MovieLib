@@ -21,15 +21,20 @@
 ;	"somefolder\\Chicken.Run2000DvDRipEng.avi":1,
 ;	};
 
+
 $statsFilePath = "stats.js"
+$MOVIES_FILE_PATH = 'movies.js'
 Global $statsArray
+Global $stringArray
+
+
 
 Func writeStats($videoFilename)
 	; read stats file to array. remove first item which is the number of lines
 	_FileReadToArray($statsFilePath, $statsArray)
 	_ArrayDelete($statsArray, 0)
 	$length = UBound($statsArray);
-	
+
 	; replace \ with \\ (so it fit the script in the html file)
 	$videoFilename = StringReplace($videoFilename, '\', '\\')
 
@@ -49,7 +54,7 @@ Func writeStats($videoFilename)
 		; add last line to close json
 		_ArrayAdd($statsArray, '};')
 	EndIf
-	
+
 	; write back to file
 	_FileWriteFromArray($statsFilePath, $statsArray)
 EndFunc
@@ -59,14 +64,50 @@ Func runMovie($filename)
    Run('openFile.bat "..\' & $filename & '"')
 EndFunc
 
+Func isMovieFileName($filename)
+	$extension = StringRight($filename, 4)
+	return $extension = '.avi' Or $extension = '.mp4' Or $extension = '.mkv' Or $extension = '.mpg' Or $extension = '.flv'
+EndFunc
 
+;https://youtu.be/s4XzVyhBP3Q
+;https://www.youtube.com/watch?v=s4XzVyhBP3Q
+Func isYoutubeClip($url)
+	return StringLeft($url, 17) = 'https://youtu.be/' Or StringLeft($url, 29) = 'https://www.youtube.com/watch'
+EndFunc
+
+Func popMsg($message)
+	MsgBox($MB_SYSTEMMODAL, "MovieLib", $message)
+EndFunc
+
+Func addYoutubeClip($url, $title)
+	; read stats file to array. remove first item which is the number of lines
+	_FileReadToArray($MOVIES_FILE_PATH, $stringArray)
+	_ArrayDelete($stringArray, 0)
+	$length = UBound($stringArray);
+
+	; replace last line with record for this video
+	$pos = StringInStr($url, '?v=') + 2
+	$id = StringRight($url, StringLen($url) - $pos)
+	popMsg($id)
+	$stringArray[$length - 1] = "	{'name': '" & $title & "', 'type': 'youtube', 'id': '" & $id & "'},"
+
+	; add last line to close json
+	_ArrayAdd($stringArray, '];')
+
+	; write back to file
+	_FileWriteFromArray($MOVIES_FILE_PATH, $stringArray)
+EndFunc
+
+
+;--------------------------------------------------
 
 ; init - open html file
-Run('openFile.bat "movieLib.html"')
+;Run('openFile.bat "movieLib.html"')
 
 
 ; Enforce singleton
 If _Singleton("test", 1) = 0 Then
+	popMsg('Already Running')
     Exit
 EndIf
 
@@ -81,10 +122,16 @@ While 1=1
 		$prevClipData = $clipData
 
 		; check if text is video file name
-		$extension = StringRight($clipData, 4)
-		If $extension = '.avi' Or $extension = '.mp4' Or $extension = '.mkv' Or $extension = '.mpg' Or $extension = '.flv' Then
-			;MsgBox($MB_SYSTEMMODAL, "AutoIt Example", $clipData)
+		If isMovieFileName($clipData) Then
 			runMovie($clipData);
+			$clipData = ''
+		ElseIf isYoutubeClip($clipData) Then
+			;popMsg('YouTube clip: ' & $clipData)
+			Local $title = InputBox("Add clip to MovieLib", "Please enter the title")
+            If $title <> '' Then
+            	addYoutubeClip($clipData, $title)
+				$clipData = ''
+            EndIf
 		EndIf
 	EndIf
 

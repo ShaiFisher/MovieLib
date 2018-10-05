@@ -20,14 +20,15 @@
  *		{'name': 'Alfred Jodocus Kwak', type: 'series', 'episodes': [
  *			{'name': 'Episode 1', 'video': 'Alfred Jodocus Kwak\\kwakep01.mp4'},
  *		 	{'name': 'Episode 2', 'video': 'Alfred Jodocus Kwak\\kwakep02.mp4'},
- *		]}
+ *		]},
+ 		{'name': 'Neutral Response', 'type': 'youtube', 'id': 'ussCHoQttyQ'},
  *	];
  */
 
 var movieLibApp = angular.module('movieLibApp', []);
 
 
-movieLibApp.controller('movieLibCtrl', function($scope) {
+movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 
 	$scope.data = {
 		filterText: '',
@@ -54,6 +55,13 @@ movieLibApp.controller('movieLibCtrl', function($scope) {
 		
 		if (movie.type == 'series') {
 			$scope.selectSeries(movie);
+			return;
+		}
+
+		if (movie.type == 'youtube') {
+			$scope.youtubeId = movie.id;
+			$scope.youtubeTitle = movie.name;
+			$scope.youtubeUrl = $sce.trustAsResourceUrl('https://www.youtube.com/embed/s4XzVyhBP3Q');
 			return;
 		}
 		
@@ -212,20 +220,39 @@ Body {
 	</h1>
 </div>
 
-<div class="thumbnailsContainer" ng-hide="false">
+<!-- thumbnails -->
+<div class="thumbnailsContainer" ng-hide="youtubeId">
 	<div class="row">
 		<div class="thumbnail-cell" 
 				ng-repeat="movie in movies | filter : data.filterText" 
 				ng-click="selectMovie(movie)">
-			<div class="thumbnail-image-container">
+
+			<!-- movie thumbnail -->
+			<div class="thumbnail-image-container" ng-if="movie.type != 'youtube'">
 				<img src="images/{{movie.image || activeSeries.name || movie.name}}.jpg" class="img-thumbnail" width="200" height="300" style="height:300px !important">
 				<span class="badge badge-light" ng-bind="stats[movie.video]"></span>
 			</div>
+
+			<!-- youtube thumbnail -->
+			<div class="youtube-thumbnail-container" ng-if="movie.type = 'youtube'">
+				<img src="https://img.youtube.com/vi/{{movie.id}}/mqdefault.jpg" width="300" height="200">
+				<span class="badge badge-light" ng-bind="stats[movie.id]"></span>
+			</div>
+
 			<div class="label">
 				{{movie.name}}
 			</div>
 		</div>
 	</div>
+</div>
+
+<div style="text-align: center;" ng-show="youtubeId">
+	<h1>
+		{{youtubeTitle}}
+		<small class="text-muted back-link" style="margin-right: 50px;" ng-click="youtubeId = null">🡆חזור</small>
+	</h1>
+	<iframe width="640" height="360" ng-src="{{youtubeUrl}}"
+			frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 </div>
 
 <div ng-hide="true">
