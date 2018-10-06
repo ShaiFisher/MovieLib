@@ -91,6 +91,9 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 	};
 	
 	$scope.selectSeries = function(series) {
+		if (series.shuffle) {
+			$scope.scrumbleList(series.episodes);
+		}
 		$scope.activeSeries = series;
 		$scope.movies = series.episodes;
 		$scope.data.filterText = '';

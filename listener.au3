@@ -95,7 +95,11 @@ Func addMovieEntry($name, $type, $filename)
    _ArrayDelete($stringArray, 0)
    $length = UBound($stringArray);
 
+   ; fix values for Json
    $filename = StringReplace($filename, '\', '\\')
+   $filename = StringReplace($filename, "'", "\'")
+   $name = StringReplace($name, '\', '\\')
+   $name = StringReplace($name, "'", "\'")
 
    ; replace last line with record for this video
    Local $entry
