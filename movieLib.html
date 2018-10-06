@@ -50,6 +50,22 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 	$scope.movies = $scope.allMovies;
 	$scope.scrumbleList($scope.movies);
 	
+	$scope.copyText = function(text) {
+		console.log('copyText:', text);
+		$("#selectedMovie").val(text);
+		$("#selectedMovie").select();
+		document.execCommand('copy');
+	};
+
+	$scope.increaseStatsLocally = function(movieName) {
+		// increase counter locally (the listener will update the stats file)
+		if ($scope.stats[movieName]) {
+			$scope.stats[movieName]++;
+		} else {
+			$scope.stats[movieName] = 1;
+		}
+	};
+
 	$scope.selectMovie = function(movie) {
 		console.log('selectMovie:', movie);
 		
@@ -61,26 +77,24 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 		if (movie.type == 'youtube') {
 			$scope.youtubeId = movie.id;
 			$scope.youtubeTitle = movie.name;
-			$scope.youtubeUrl = $sce.trustAsResourceUrl('https://www.youtube.com/embed/s4XzVyhBP3Q');
+			$scope.youtubeUrl = $sce.trustAsResourceUrl('https://www.youtube.com/embed/' + movie.id);
+			$scope.copyText('MovieLib:stat:' + movie.id);
+			$scope.increaseStatsLocally(movie.id);
 			return;
 		}
 		
 		// copy video file name to clipboard (will be run by the listener script)
-		$("#selectedMovie").val(movie.video);
-		$("#selectedMovie").select();
-		document.execCommand('copy');
+		$scope.copyText('MovieLib:play:' + movie.video);
 		
 		// increase counter locally (the listener will update the stats file)
-		if ($scope.stats[movie.video]) {
-			$scope.stats[movie.video]++;
-		} else {
-			$scope.stats[movie.video] = 1;
-		}
+		$scope.increaseStatsLocally(movie.video);
 	};
 	
 	$scope.selectSeries = function(series) {
 		$scope.activeSeries = series;
 		$scope.movies = series.episodes;
+		$scope.data.filterText = '';
+		//console.log('selectSeries: movies:', $scope.movies);
 	};
 	
 	$scope.showAllMovies = function() {
@@ -146,7 +160,7 @@ Body {
 	display: inline-grid;
 	max-width: 202px;
 	width: 202px;
-	height: 375px;
+	/*height: 375px;*/
 	position: relative;
 }
 
@@ -177,6 +191,7 @@ Body {
 	white-space: initial;
 	text-align: center;
 	line-height: 18pt;
+	margin: 20 0;
 }
 
 .back-link {
@@ -213,7 +228,7 @@ Body {
 </form>
 
 <!-- series title -->
-<div class="container" style="text-align: right" ng-show="activeSeries">
+<div class="container" style="text-align: right" ng-show="activeSeries && !youtubeId">
 	<h1>
 		{{activeSeries.name}}
 		<small class="text-muted back-link" style="margin-right: 50px;" ng-click="showAllMovies()">🡆חזור</small>
@@ -234,8 +249,8 @@ Body {
 			</div>
 
 			<!-- youtube thumbnail -->
-			<div class="youtube-thumbnail-container" ng-if="movie.type = 'youtube'">
-				<img src="https://img.youtube.com/vi/{{movie.id}}/mqdefault.jpg" width="300" height="200">
+			<div class="youtube-thumbnail-container" ng-if="movie.type == 'youtube'">
+				<img src="https://img.youtube.com/vi/{{movie.id}}/mqdefault.jpg" width="200" height="133">
 				<span class="badge badge-light" ng-bind="stats[movie.id]"></span>
 			</div>
 
@@ -246,23 +261,25 @@ Body {
 	</div>
 </div>
 
+<!-- youtube player -->
 <div style="text-align: center;" ng-show="youtubeId">
 	<h1>
 		{{youtubeTitle}}
 		<small class="text-muted back-link" style="margin-right: 50px;" ng-click="youtubeId = null">🡆חזור</small>
 	</h1>
-	<iframe width="640" height="360" ng-src="{{youtubeUrl}}"
+	<iframe width="1024" height="768" ng-src="{{youtubeUrl}}"
 			frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 </div>
 
+
+<!-- import form -->
 <div ng-hide="true">
-	
 	<input type="text" ng-model="subdir"/>
 	<input type="file" id="newFielsInput" multiple="true"/><br/>
 	<textarea ng-model="importText" rows="20" cols="90"></textarea>
 </div>
 
-
+<!-- hidden input for copying text -->
 <input id="selectedMovie" type="text" style="position: absolute; left: -1000;">
 
 

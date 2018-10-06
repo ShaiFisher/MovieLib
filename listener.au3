@@ -88,7 +88,6 @@ Func addYoutubeClip($url, $title)
 	; replace last line with record for this video
 	$pos = StringInStr($url, '?v=') + 2
 	$id = StringRight($url, StringLen($url) - $pos)
-	popMsg($id)
 	$stringArray[$length - 1] = "	{'name': '" & $title & "', 'type': 'youtube', 'id': '" & $id & "'},"
 
 	; add last line to close json
@@ -115,25 +114,33 @@ EndIf
 $prevClipData = 'bla'
 
 While 1=1
-	; read clipboard
-	$clipData = ClipGet()
-	; check if clipData has been changed
-	If $clipData <> $prevClipData Then
+   ; read clipboard
+   $clipData = ClipGet()
+   ; check if clipData has been changed
+   If $clipData <> $prevClipData Then
 		$prevClipData = $clipData
 
-		; check if text is video file name
-		If isMovieFileName($clipData) Then
-			runMovie($clipData);
-			$clipData = ''
-		ElseIf isYoutubeClip($clipData) Then
-			;popMsg('YouTube clip: ' & $clipData)
-			Local $title = InputBox("Add clip to MovieLib", "Please enter the title")
-            If $title <> '' Then
-            	addYoutubeClip($clipData, $title)
-				$clipData = ''
-            EndIf
-		EndIf
-	EndIf
+	  If StringLeft($clipdata, 9) = 'MovieLib:' Then
+		 If StringLeft($clipData, 14) = 'MovieLib:play:' Then
+			; run movie
+			$filename = StringRight($clipData, StringLen($clipData) - 14)
+			runMovie($filename)
+		 ElseIf StringLeft($clipData, 14) = 'MovieLib:stat:' Then
+			; write stat
+			$filename = StringRight($clipData, StringLen($clipData) - 14)
+			;popMsg('stat:' & $filename)
+			writeStats($filename)
+		 EndIf
+		 $clipData = ''
+	  ElseIf isYoutubeClip($clipData) Then
+		 ;popMsg('YouTube clip: ' & $clipData)
+		 Local $title = InputBox("Add clip to MovieLib", "Please enter the title")
+		 If $title <> '' Then
+			 addYoutubeClip($clipData, $title)
+			 $clipData = ''
+		 EndIf
+	  EndIf
+   EndIf
 
 	Sleep ( 1000 )
 WEnd
