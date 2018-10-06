@@ -30,71 +30,100 @@ Global $stringArray
 
 
 Func writeStats($videoFilename)
-	; read stats file to array. remove first item which is the number of lines
-	_FileReadToArray($statsFilePath, $statsArray)
-	_ArrayDelete($statsArray, 0)
-	$length = UBound($statsArray);
+   ; read stats file to array. remove first item which is the number of lines
+   _FileReadToArray($statsFilePath, $statsArray)
+   _ArrayDelete($statsArray, 0)
+   $length = UBound($statsArray);
 
-	; replace \ with \\ (so it fit the script in the html file)
-	$videoFilename = StringReplace($videoFilename, '\', '\\')
+   ; replace \ with \\ (so it fit the script in the html file)
+   $videoFilename = StringReplace($videoFilename, '\', '\\')
 
-	; search for movie file name
-	Local $iIndex = _ArraySearch($statsArray, $videoFilename, 0,0,0,1)
-	If $iIndex > 1 Then
-		; found, increase counter
-		$line = $statsArray[$iIndex]
-		$countStr = StringRight($line, StringLen($line) - StringInStr($line, ":"))
-		$count = Int($countStr) + 1
-		$statsArray[$iIndex] = '"' & $videoFilename & '":' & $count & ','
-		_FileWriteFromArray($statsFilePath, $statsArray)
-	Else
-		; not found, add to file
-		; replace last line with stats for this video
-		$statsArray[$length - 1] = '"' & $videoFilename & '":1,'
-		; add last line to close json
-		_ArrayAdd($statsArray, '};')
-	EndIf
+   ; search for movie file name
+   Local $iIndex = _ArraySearch($statsArray, $videoFilename, 0,0,0,1)
+   If $iIndex > 1 Then
+	  ; found, increase counter
+	  $line = $statsArray[$iIndex]
+	  $countStr = StringRight($line, StringLen($line) - StringInStr($line, ":"))
+	  $count = Int($countStr) + 1
+	  $statsArray[$iIndex] = '"' & $videoFilename & '":' & $count & ','
+	  _FileWriteFromArray($statsFilePath, $statsArray)
+   Else
+	  ; not found, add to file
+	  ; replace last line with stats for this video
+	  $statsArray[$length - 1] = '"' & $videoFilename & '":1,'
+	  ; add last line to close json
+	  _ArrayAdd($statsArray, '};')
+   EndIf
 
-	; write back to file
-	_FileWriteFromArray($statsFilePath, $statsArray)
+   ; write back to file
+   _FileWriteFromArray($statsFilePath, $statsArray)
 EndFunc
 
 Func runMovie($filename)
+   ;popMsg('runMovie:' & $filename)
    writeStats($filename)
-   Run('openFile.bat "..\' & $filename & '"')
+   If (StringMid ($filename,2,1) <> ':') Then
+	  $filename = '..\' & $filename
+   EndIf
+   Run('openFile.bat "' & $filename & '"')
 EndFunc
 
 Func isMovieFileName($filename)
-	$extension = StringRight($filename, 4)
-	return $extension = '.avi' Or $extension = '.mp4' Or $extension = '.mkv' Or $extension = '.mpg' Or $extension = '.flv'
+   $extension = StringRight($filename, 4)
+   return $extension = '.avi' Or $extension = '.mp4' Or $extension = '.mkv' Or $extension = '.mpg' Or $extension = '.flv'
 EndFunc
 
 ;https://youtu.be/s4XzVyhBP3Q
 ;https://www.youtube.com/watch?v=s4XzVyhBP3Q
 Func isYoutubeClip($url)
-	return StringLeft($url, 17) = 'https://youtu.be/' Or StringLeft($url, 29) = 'https://www.youtube.com/watch'
+   return StringLeft($url, 17) = 'https://youtu.be/' Or StringLeft($url, 29) = 'https://www.youtube.com/watch'
 EndFunc
 
 Func popMsg($message)
-	MsgBox($MB_SYSTEMMODAL, "MovieLib", $message)
+   MsgBox($MB_SYSTEMMODAL, "MovieLib", $message)
 EndFunc
 
 Func addYoutubeClip($url, $title)
-	; read stats file to array. remove first item which is the number of lines
-	_FileReadToArray($MOVIES_FILE_PATH, $stringArray)
-	_ArrayDelete($stringArray, 0)
-	$length = UBound($stringArray);
+   $pos = StringInStr($url, '?v=') + 2
+   $id = StringRight($url, StringLen($url) - $pos)
+   addMovieEntry($title, 'youtube', $id)
+EndFunc
 
-	; replace last line with record for this video
-	$pos = StringInStr($url, '?v=') + 2
-	$id = StringRight($url, StringLen($url) - $pos)
-	$stringArray[$length - 1] = "	{'name': '" & $title & "', 'type': 'youtube', 'id': '" & $id & "'},"
+Func addMovieEntry($name, $type, $filename)
+   ; read movies file to array. remove first item which is the number of lines
+   _FileReadToArray($MOVIES_FILE_PATH, $stringArray)
+   _ArrayDelete($stringArray, 0)
+   $length = UBound($stringArray);
 
-	; add last line to close json
-	_ArrayAdd($stringArray, '];')
+   $filename = StringReplace($filename, '\', '\\')
 
-	; write back to file
-	_FileWriteFromArray($MOVIES_FILE_PATH, $stringArray)
+   ; replace last line with record for this video
+   Local $entry
+   If ($type = 'youtube') Then
+	  $entry = "	{'name': '" & $name & "', 'type': 'youtube', 'id': '" & $filename & "'},"
+   Else
+	  $entry = "	{'name': '" & $name & "', 'type': '" & $type & "', 'video': '" & $filename & "'},"
+   EndIf
+   $stringArray[$length - 1] = $entry
+
+   ; add last line to close json
+   _ArrayAdd($stringArray, '];')
+
+   ; write back to file
+   _FileWriteFromArray($MOVIES_FILE_PATH, $stringArray)
+EndFunc
+
+Func stripFileName($filename)
+   $pos = StringInStr($filename, '\')
+   while ($pos > 0)
+	  $filename = StringRight($filename, StringLen($filename) - $pos)
+	  $pos = StringInStr($filename, '\')
+   WEnd
+
+   ; remove extension
+   $filename = StringLeft($filename, StringLen($filename) - 4)
+
+   Return $filename
 EndFunc
 
 
@@ -138,6 +167,14 @@ While 1=1
 		 If $title <> '' Then
 			 addYoutubeClip($clipData, $title)
 			 $clipData = ''
+		  EndIf
+	  ElseIf isMovieFileName($clipData) Then
+		 ;popMsg($clipData)
+		 Local $strippedFileName = stripFileName($clipData)
+		 Local $title = InputBox("Add movie to MovieLib", "Please enter the title", $strippedFileName)
+		 If $title <> '' Then
+			addMovieEntry($title, 'movie', $clipData)
+			$clipData = ''
 		 EndIf
 	  EndIf
    EndIf
