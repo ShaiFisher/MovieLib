@@ -1,10 +1,11 @@
 <HTML dir=rtl lang="he" ng-app="movieLibApp">
 <Head>
-<Title>סרטים</Title>
-<meta charset="utf-8"/>
+	<Title>סרטים</Title>
+	<meta charset="utf-8"/>
 	<link rel="icon" href="favicon.png">
 
 	<link rel="stylesheet" href="https://getbootstrap.com/docs/4.0/dist/css/bootstrap.min.css">
+	<link rel="stylesheet" type="text/css" href="movieLib.css">
 
 	<script src="http://ajax.microsoft.com/ajax/jQuery/jquery-1.4.4.js" type="text/javascript"></script>
 	<script id="angularScript" src="http://ajax.googleapis.com/ajax/libs/angularjs/1.3.0/angular.min.js"></script>
@@ -97,12 +98,21 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 		$scope.activeSeries = series;
 		$scope.movies = series.episodes;
 		$scope.data.filterText = '';
+		delete $scope.data.filterType;
 		//console.log('selectSeries: movies:', $scope.movies);
 	};
 	
 	$scope.showAllMovies = function() {
 		$scope.movies = $scope.allMovies;
 		$scope.activeSeries = null;
+	};
+
+	$scope.toggleTVFilter = function() {
+		if ($scope.data.filterType) {
+			delete $scope.data.filterType;
+		} else {
+			$scope.data.filterType = 'series';
+		}
 	};
 	
 	// helper to import files from dir export in powershell
@@ -139,74 +149,13 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 
 </Script>
 
-<Style>
-
-Body {
-	background-color: pink;
-}
-
-.form-control-lg {
-	font-size: 20pt;
-}
-
-.clear {
-	font-weight: bold;
-    cursor: default;
-}
-
-.thumbnailsContainer {
-	padding: 0px 50px;
-}
-
-.thumbnail-cell {
-	border: 1px solid;
-	display: inline-grid;
-	max-width: 202px;
-	width: 202px;
-	/*height: 375px;*/
-	position: relative;
-}
-
-.img-thumbnail {
-	width: 200px !important;
-	height: 300px !important;
-}
-
-.badge {
-	position: absolute;
-	top: 4px;
-	left: 4px;
-	font-size: 16pt;
-	background-image: URL(cornerBadge.png);
-	background-color: transparent;
-	background-size: 50px;
-	width: 50px;
-	height: 50px;
-	padding: 0px 0px;
-    text-align: left;
-}
-	
-.label {
-	display: block;
-    color: black;
-	font-size: 20pt;
-	font-family: arial;
-	white-space: initial;
-	text-align: center;
-	line-height: 18pt;
-	margin: 20 0;
-}
-
-.back-link {
-	cursor: pointer;
-}
-</style>
 </Head>
 
 <Body ng-controller="movieLibCtrl">
 
 
 <form>
+	<!-- filter -->
 	<div class="form-group align-items-center container">
 		<!-- filter input -->
 		<div class="row form-row" style="margin-right: 300px;">
@@ -230,6 +179,11 @@ Body {
 	</div>
 </form>
 
+<!-- TV filter -->
+<div class="tvFilter" ng-class="{tvFilterActive: data.filterType}" ng-hide="activeSeries">
+	<button ng-click="toggleTVFilter()" style="background-color: #92BEE2"><img src="tv.png" width="80" height="80"></button>
+</div>
+
 <!-- series title -->
 <div class="container" style="text-align: right" ng-show="activeSeries && !youtubeId">
 	<h1>
@@ -242,7 +196,7 @@ Body {
 <div class="thumbnailsContainer" ng-hide="youtubeId">
 	<div class="row">
 		<div class="thumbnail-cell" 
-				ng-repeat="movie in movies | filter : data.filterText" 
+				ng-repeat="movie in movies | filter:data.filterText | filter:{type: data.filterType}" 
 				ng-click="selectMovie(movie)">
 
 			<!-- movie thumbnail -->
@@ -258,7 +212,7 @@ Body {
 			</div>
 
 			<div class="label">
-				{{movie.name}}
+				{{movie.name}} {{movie.type=='series' ? '('+movie.episodes.length+')' : ''}}
 			</div>
 		</div>
 	</div>
