@@ -63,9 +63,25 @@ Body {
 	filter: grayscale(100%);
 	position: absolute; 
 	top: 20px; 
-	left: 50px;
+	left: 20px;
 }
 
 .tvFilterActive {
 	filter: none;
+}
+
+.unseenFilter {
+	filter: grayscale(100%);
+	position: absolute; 
+	top: 20px; 
+	left: 120px;
+}
+
+.unseenFilterActive {
+	filter: none;
+}
+
+.thumbnail-cell.new .label {
+	color: red;
+	font-weight: bold;
 }

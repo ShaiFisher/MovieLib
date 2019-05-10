@@ -33,6 +33,7 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 
 	$scope.data = {
 		filterText: '',
+		//showOnlyUnseen: false,
 		moviesJson: 'init'
 	};
 	
@@ -50,7 +51,22 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 	$scope.stats = stats;		// from stats.js
 	$scope.movies = $scope.allMovies;
 	$scope.scrumbleList($scope.movies);
-	
+
+	// check which video is unseen
+	angular.forEach($scope.movies, function(movie) {
+		if (movie.type == 'series') {
+			movie.isNew = false;
+			angular.forEach(movie.episodes, function(episode) {
+				stat = $scope.stats[episode.video] || $scope.stats[episode.id];
+				episode.isNew = (stat ? false : true);
+				movie.isNew = movie.isNew || episode.isNew;
+			});
+		} else {
+			stat = $scope.stats[movie.video] || $scope.stats[movie.id];
+			movie.isNew = (stat ? false : true);
+		}
+	});
+
 	$scope.copyText = function(text) {
 		console.log('copyText:', text);
 		$("#selectedMovie").val(text);
@@ -75,10 +91,21 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 			return;
 		}
 
-		if (movie.type == 'youtube') {
-			$scope.youtubeId = movie.id;
-			$scope.youtubeTitle = movie.name;
-			$scope.youtubeUrl = $sce.trustAsResourceUrl('https://www.youtube.com/embed/' + movie.id);
+		if (movie.type == 'youtube' || movie.type == 'dailyMotion') {
+			if (movie.newtab) {
+				window.open('https://www.youtube.com/watch?v=' + movie.id, '_blank');
+
+			} else {
+				$scope.embededMovie = movie;
+				$scope.embedUrl = '';
+				if (movie.type == 'youtube') {
+					$scope.embedUrl = $sce.trustAsResourceUrl('https://www.youtube.com/embed/' + movie.id + '?autoplay=0&color=pink&iv_load_policy=3&rel=0');
+					$scope.embedUrlNewTab = $sce.trustAsResourceUrl('https://www.youtube.com/watch?v=' + movie.id);
+				} else if (movie.type == 'dailyMotion') {
+					$scope.embedUrl = $sce.trustAsResourceUrl('https://www.dailymotion.com/embed/video/' + movie.id);
+					$scope.embedUrlNewTab = '';
+				}
+			}
 			$scope.copyText('MovieLib:stat:' + movie.id);
 			$scope.increaseStatsLocally(movie.id);
 			return;
@@ -90,7 +117,7 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 		// increase counter locally (the listener will update the stats file)
 		$scope.increaseStatsLocally(movie.video);
 	};
-	
+
 	$scope.selectSeries = function(series) {
 		if (series.shuffle) {
 			$scope.scrumbleList(series.episodes);
@@ -101,6 +128,12 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 		delete $scope.data.filterType;
 		//console.log('selectSeries: movies:', $scope.movies);
 	};
+
+	/*angular.forEach($scope.movies, function(movie) {
+		if (movie.name == 'קליפים') {
+			$scope.selectMovie(movie);
+		}
+	});*/
 	
 	$scope.showAllMovies = function() {
 		$scope.movies = $scope.allMovies;
@@ -112,6 +145,15 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 			delete $scope.data.filterType;
 		} else {
 			$scope.data.filterType = 'series';
+		}
+	};
+
+	$scope.toggleUnseenFilter = function() {
+		//$scope.data.showOnlyUnseen = !$scope.data.showOnlyUnseen;
+		if ($scope.data.showOnlyUnseen) {
+			delete $scope.data.showOnlyUnseen;
+		} else {
+			$scope.data.showOnlyUnseen = true;
 		}
 	};
 	
@@ -184,8 +226,13 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 	<button ng-click="toggleTVFilter()" style="background-color: #92BEE2"><img src="tv.png" width="80" height="80"></button>
 </div>
 
+<!-- Unseen filter -->
+<div class="unseenFilter" ng-class="{unseenFilterActive: data.showOnlyUnseen}">
+	<button ng-click="toggleUnseenFilter()" style="background-color: #92BEE2"><img src="unseen.png" width="80" height="80"></button>
+</div>
+
 <!-- series title -->
-<div class="container" style="text-align: right" ng-show="activeSeries && !youtubeId">
+<div class="container" style="text-align: right" ng-show="activeSeries && !embededMovie">
 	<h1>
 		{{activeSeries.name}}
 		<small class="text-muted back-link" style="margin-right: 50px;" ng-click="showAllMovies()">🡆חזור</small>
@@ -193,14 +240,15 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 </div>
 
 <!-- thumbnails -->
-<div class="thumbnailsContainer" ng-hide="youtubeId">
+<div class="thumbnailsContainer" ng-hide="embededMovie">
 	<div class="row">
 		<div class="thumbnail-cell" 
-				ng-repeat="movie in movies | filter:data.filterText | filter:{type: data.filterType}" 
-				ng-click="selectMovie(movie)">
+				ng-repeat="movie in movies | filter:data.filterText | filter:{type: data.filterType} | filter:{isNew: data.showOnlyUnseen}" 
+				ng-click="selectMovie(movie)"
+				ng-class="{new: movie.isNew}" >
 
 			<!-- movie thumbnail -->
-			<div class="thumbnail-image-container" ng-if="movie.type != 'youtube'">
+			<div class="thumbnail-image-container" ng-if="movie.type != 'youtube' && movie.type != 'dailyMotion'">
 				<img src="images/{{movie.image || activeSeries.name || movie.name}}.jpg" class="img-thumbnail" width="200" height="300" style="height:300px !important">
 				<span class="badge badge-light" ng-bind="stats[movie.video]"></span>
 			</div>
@@ -211,6 +259,12 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 				<span class="badge badge-light" ng-bind="stats[movie.id]"></span>
 			</div>
 
+			<!-- dailyMotion thumbnail -->
+			<div class="youtube-thumbnail-container" ng-if="movie.type == 'dailyMotion'">
+				<img src="https://www.dailymotion.com/thumbnail/video/{{movie.id}}" width="200" height="133">
+				<span class="badge badge-light" ng-bind="stats[movie.id]"></span>
+			</div>
+
 			<div class="label">
 				{{movie.name}} {{movie.type=='series' ? '('+movie.episodes.length+')' : ''}}
 			</div>
@@ -218,16 +272,16 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 	</div>
 </div>
 
-<!-- youtube player -->
-<div style="text-align: center;" ng-show="youtubeId">
+<!-- embeded player -->
+<div style="text-align: center;" ng-show="embededMovie">
 	<h1>
-		{{youtubeTitle}}
-		<small class="text-muted back-link" style="margin-right: 50px;" ng-click="youtubeId = null">🡆חזור</small>
+		{{embededMovie.name}}
+		<small class="text-muted back-link" style="margin-right: 50px;" ng-click="embededMovie = null">🡆חזור</small>
 	</h1>
-	<iframe width="1024" height="768" ng-src="{{youtubeUrl}}"
+	<iframe width="933" height="700" ng-src="{{embedUrl}}"
 			frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+	<div><a href="{{embedUrlNewTab}}" target="_blank">פתח בחלון חדש</a></div>
 </div>
-
 
 <!-- import form -->
 <div ng-hide="true">

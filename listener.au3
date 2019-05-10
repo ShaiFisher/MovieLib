@@ -79,6 +79,10 @@ Func isYoutubeClip($url)
    return StringLeft($url, 17) = 'https://youtu.be/' Or StringLeft($url, 29) = 'https://www.youtube.com/watch'
 EndFunc
 
+Func isDailyMotionClip($url)
+   return StringInStr($url, 'dailymotion.com')
+EndFunc
+
 Func popMsg($message)
    MsgBox($MB_SYSTEMMODAL, "MovieLib", $message)
 EndFunc
@@ -87,6 +91,13 @@ Func addYoutubeClip($url, $title)
    $pos = StringInStr($url, '?v=') + 2
    $id = StringRight($url, StringLen($url) - $pos)
    addMovieEntry($title, 'youtube', $id)
+EndFunc
+
+;https://www.dailymotion.com/video/x5jgio4
+Func addDailyMotionClip($url, $title)
+   $pos = StringInStr($url, 'video') + 5
+   $id = StringRight($url, StringLen($url) - $pos)
+   addMovieEntry($title, 'dailyMotion', $id)
 EndFunc
 
 Func addMovieEntry($name, $type, $filename)
@@ -103,8 +114,8 @@ Func addMovieEntry($name, $type, $filename)
 
    ; replace last line with record for this video
    Local $entry
-   If ($type = 'youtube') Then
-	  $entry = "	{'name': '" & $name & "', 'type': 'youtube', 'id': '" & $filename & "'},"
+   If ($type = 'youtube' Or $type = 'dailyMotion') Then
+	  $entry = "	{'name': '" & $name & "', 'type': '" & $type & "', 'id': '" & $filename & "'},"
    Else
 	  $entry = "	{'name': '" & $name & "', 'type': '" & $type & "', 'video': '" & $filename & "'},"
    EndIf
@@ -170,6 +181,13 @@ While 1=1
 		 Local $title = InputBox("Add clip to MovieLib", "Please enter the title")
 		 If $title <> '' Then
 			 addYoutubeClip($clipData, $title)
+			 $clipData = ''
+		  EndIf
+	  ElseIf isDailyMotionClip($clipData) Then
+		 ;popMsg('DailyMotion clip: ' & $clipData)
+		 Local $title = InputBox("Add clip to MovieLib", "Please enter the title")
+		 If $title <> '' Then
+			 addDailyMotionClip($clipData, $title)
 			 $clipData = ''
 		  EndIf
 	  ElseIf isMovieFileName($clipData) Then
