@@ -25,9 +25,14 @@ Body {
 	position: relative;
 }
 
+.thumbnail-cell.landscape img {
+	width: 200px;
+	height: 133px;
+}
+
 .img-thumbnail {
-	width: 200px !important;
-	height: 300px !important;
+	width: 200px;
+	height: 300px;
 }
 
 .badge {

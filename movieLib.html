@@ -34,7 +34,8 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 	$scope.data = {
 		filterText: '',
 		//showOnlyUnseen: false,
-		moviesJson: 'init'
+		moviesJson: 'init',
+		//filterType: 'series'
 	};
 	
 	$scope.scrumbleList = function(list) {
@@ -83,6 +84,10 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 		}
 	};
 
+	$scope.isEmbedded = function(movieType) {
+		return (movieType == 'youtube' || movieType == 'dailyMotion' || movieType == 'vimeo');
+	};
+
 	$scope.selectMovie = function(movie) {
 		console.log('selectMovie:', movie);
 		
@@ -91,19 +96,30 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 			return;
 		}
 
-		if (movie.type == 'youtube' || movie.type == 'dailyMotion') {
+		if ($scope.isEmbedded(movie.type)) {
 			if (movie.newtab) {
 				window.open('https://www.youtube.com/watch?v=' + movie.id, '_blank');
 
 			} else {
 				$scope.embededMovie = movie;
 				$scope.embedUrl = '';
+				$scope.embedUrlNewTab = '';
+				var untrustedUrl = '';
+				var untrustedUrlNewTab = '';
 				if (movie.type == 'youtube') {
-					$scope.embedUrl = $sce.trustAsResourceUrl('https://www.youtube.com/embed/' + movie.id + '?autoplay=0&color=pink&iv_load_policy=3&rel=0');
-					$scope.embedUrlNewTab = $sce.trustAsResourceUrl('https://www.youtube.com/watch?v=' + movie.id);
+					untrustedUrl = 'https://www.youtube.com/embed/' + movie.id + '?autoplay=0&color=pink&iv_load_policy=3&rel=0';
+					untrustedUrlNewTab = 'https://www.youtube.com/watch?v=' + movie.id;
 				} else if (movie.type == 'dailyMotion') {
-					$scope.embedUrl = $sce.trustAsResourceUrl('https://www.dailymotion.com/embed/video/' + movie.id);
-					$scope.embedUrlNewTab = '';
+					untrustedUrl = 'https://www.dailymotion.com/embed/video/' + movie.id;
+				} else if (movie.type == 'vimeo') {
+					untrustedUrl = 'https://player.vimeo.com/video/' + movie.id;
+					untrustedUrlNewTab = 'https://vimeo.com/' + movie.id;
+				}
+				if (untrustedUrl) {
+					$scope.embedUrl = $sce.trustAsResourceUrl(untrustedUrl);
+				}
+				if (untrustedUrlNewTab) {
+					$scope.embedUrlNewTab = $sce.trustAsResourceUrl(untrustedUrlNewTab);
 				}
 			}
 			$scope.copyText('MovieLib:stat:' + movie.id);
@@ -125,6 +141,7 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 		$scope.activeSeries = series;
 		$scope.movies = series.episodes;
 		$scope.data.filterText = '';
+		$scope.data.thumbnailsDirection = series.thumbnailsDirection;
 		delete $scope.data.filterType;
 		//console.log('selectSeries: movies:', $scope.movies);
 	};
@@ -138,6 +155,7 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 	$scope.showAllMovies = function() {
 		$scope.movies = $scope.allMovies;
 		$scope.activeSeries = null;
+		$scope.data.thumbnailsDirection = '';
 	};
 
 	$scope.toggleTVFilter = function() {
@@ -245,11 +263,11 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 		<div class="thumbnail-cell" 
 				ng-repeat="movie in movies | filter:data.filterText | filter:{type: data.filterType} | filter:{isNew: data.showOnlyUnseen}" 
 				ng-click="selectMovie(movie)"
-				ng-class="{new: movie.isNew}" >
+				ng-class="{new: movie.isNew, landscape: (movie.direction == 'landscape' || data.thumbnailsDirection == 'landscape')}" >
 
 			<!-- movie thumbnail -->
-			<div class="thumbnail-image-container" ng-if="movie.type != 'youtube' && movie.type != 'dailyMotion'">
-				<img src="images/{{movie.image || activeSeries.name || movie.name}}.jpg" class="img-thumbnail" width="200" height="300" style="height:300px !important">
+			<div class="thumbnail-image-container" ng-if="movie.type != 'youtube' && movie.type != 'dailyMotion' && movie.type != 'vimeo'">
+				<img src="images/{{movie.image || activeSeries.name || movie.name}}.jpg" class="img-thumbnail">
 				<span class="badge badge-light" ng-bind="stats[movie.video]"></span>
 			</div>
 
@@ -262,6 +280,12 @@ movieLibApp.controller('movieLibCtrl', function($scope, $sce) {
 			<!-- dailyMotion thumbnail -->
 			<div class="youtube-thumbnail-container" ng-if="movie.type == 'dailyMotion'">
 				<img src="https://www.dailymotion.com/thumbnail/video/{{movie.id}}" width="200" height="133">
+				<span class="badge badge-light" ng-bind="stats[movie.id]"></span>
+			</div>
+
+			<!-- vimeo thumbnail -->
+			<div class="youtube-thumbnail-container" ng-if="movie.type == 'vimeo'">
+				<img src="{{movie.image}}" width="200" height="133">
 				<span class="badge badge-light" ng-bind="stats[movie.id]"></span>
 			</div>
 
